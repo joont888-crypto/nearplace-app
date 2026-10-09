@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NearPlace Luxe - Soft Neumorphic Smart Location Assistant</title>
+
+    <!-- Tailwind CSS with custom palette -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/config.js"></script>
+
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet Map CSS & JS (Cloudflare CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+    <!-- Soft Neumorphic Stylesheet (design.md) -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 md:p-4">
+
+    <!-- Mobile-First Container (Max 430px per Section 8) -->
+    <div id="app-container" class="relative w-full max-w-[430px] h-[100dvh] md:h-[880px] md:max-h-[96vh] md:rounded-[44px] overflow-hidden flex flex-col transition-colors duration-300">
+
+        <!-- Notification Toast -->
+        <div id="notification-toast" class="absolute top-4 left-4 right-4 z-50 transform -translate-y-36 opacity-0 transition-all duration-300 pointer-events-auto">
+            <div class="neu-raised p-4 flex items-start space-x-3 border border-cherry/20">
+                <div class="neu-circle w-10 h-10 text-cherry text-sm shrink-0">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div class="flex-1 min-w-0 pt-0.5">
+                    <div class="text-[10px] uppercase font-bold text-cherry tracking-wider">Proximity Alert</div>
+                    <div id="toast-title" class="font-bold text-xs truncate mt-0.5">Near Destination</div>
+                    <div id="toast-message" class="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">Inside proximity radius.</div>
+                </div>
+                <button onclick="app.dismissToast()" class="text-neutral-400 hover:text-neutral-600 p-1">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Screen Body Area -->
+        <main class="relative flex-1 w-full h-full overflow-hidden">
+
+            <!-- ==============================================================
+                 SCREEN 1: HOME (Section 10)
+                 ============================================================== -->
+            <section id="tab-home" class="tab-screen w-full h-full absolute inset-0 overflow-y-auto no-scrollbar pt-6 pb-28 px-5 space-y-5">
+                
+                <!-- Header (Date / Greeting + Circular Controls) -->
+                <div class="flex justify-between items-center pt-2">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span id="header-greeting-date" class="text-xs uppercase font-semibold text-neutral-400 tracking-wider">Thursday, Oct 8</span>
+                            <span id="gps-accuracy-badge" class="text-[10px] text-neutral-400 font-semibold" title="GPS Status">📍 ค้นหา...</span>
+                        </div>
+                        <h1 class="text-xl font-bold tracking-tight mt-0.5 flex items-center gap-1.5 font-serif">
+                            NearPlace <span class="text-xs font-sans font-light tracking-widest text-cherry">LUXE</span>
+                        </h1>
+                    </div>
+
+                    <!-- Circular Controls (Section 10) -->
+                    <div class="flex items-center space-x-2.5">
+                        <button onclick="app.toggleLanguage()" class="neu-btn neu-circle text-xs font-bold" title="Language">
+                            <span id="lang-code">TH</span>
+                        </button>
+                        <button onclick="app.toggleTheme()" class="neu-btn neu-circle text-xs" title="Theme">
+                            <i id="theme-icon" class="fa-solid fa-sun text-cherry text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Search Area: "Where do you want to go?" (Section 10) -->
+                <div class="space-y-2">
+                    <h2 class="text-xs font-medium text-neutral-500 dark:text-neutral-400 tracking-wide" data-i18n="whereToGo">Where do you want to go?</h2>
+                    
+                    <div class="neu-recessed p-3.5 space-y-2.5 relative">
+                        <!-- Current Location -->
+                        <div class="flex items-center space-x-3 text-xs border-b border-neutral-300 dark:border-neutral-700/60 pb-2">
+                            <div class="w-2 h-2 rounded-full bg-cherry shrink-0"></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[10px] text-neutral-400" data-i18n="currentLocation">Current Location</div>
+                                <div class="font-semibold text-xs truncate" data-i18n="bangkok">Bangkok</div>
+                            </div>
+                        </div>
+
+                        <!-- Destination Search Input -->
+                        <div class="flex items-center space-x-3 text-xs pt-0.5">
+                            <div class="w-2 h-2 rounded-full border border-neutral-400 shrink-0"></div>
+                            <div class="flex-1 min-w-0">
+                                <input id="home-search-input" type="text" oninput="app.handleSearchInput(this.value)" placeholder="Search destination (e.g. ICONSIAM)..." class="bg-transparent border-none outline-none w-full text-xs font-semibold placeholder-neutral-400">
+                            </div>
+                            <i class="fa-solid fa-magnifying-glass text-neutral-400 text-xs shrink-0"></i>
+                        </div>
+
+                        <!-- Live Autocomplete Results -->
+                        <div id="home-search-results" class="hidden absolute left-0 right-0 top-full mt-2 z-50 neu-raised p-2 max-h-56 overflow-y-auto no-scrollbar space-y-1">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Destination Card (Section 11) -->
+                <div class="neu-raised p-4 relative space-y-3">
+                    <div class="relative overflow-hidden rounded-[26px] h-44 shadow-inner">
+                        <img id="home-dest-image" src="https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" alt="Destination">
+                        
+                        <!-- Overlay Favorite Heart Button (Section 11) -->
+                        <button id="home-dest-favorite-btn" onclick="app.toggleFavorite()" class="absolute top-3 right-3 neu-btn neu-circle w-10 h-10 text-xs shadow-md">
+                            <i class="fa-regular fa-heart text-xs opacity-60"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between items-start pt-1">
+                        <div>
+                            <span id="home-dest-category" class="text-[10px] uppercase font-bold tracking-wider text-neutral-400">Shopping Mall</span>
+                            <h3 id="home-dest-name" class="text-lg font-bold tracking-tight">ICONSIAM</h3>
+                        </div>
+
+                        <!-- Large Visual Anchors (Section 6 & 11) -->
+                        <div class="text-right">
+                            <div id="home-dest-distance" class="text-lg font-light tracking-tight text-cherry font-sans">3.1 km</div>
+                            <div id="home-dest-time" class="text-xs text-neutral-400 font-medium">14 min</div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Navigation Actions -->
+                    <div class="grid grid-cols-2 gap-2.5 pt-1">
+                        <button onclick="app.switchTab('tab-map')" class="neu-btn py-3 rounded-btn text-xs font-bold text-cherry flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-diamond-turn-right text-xs"></i>
+                            <span data-i18n="startNav">Start Navigation</span>
+                        </button>
+                        <button onclick="app.openPlaceDetails()" class="neu-btn py-3 rounded-btn text-xs font-semibold flex items-center justify-center gap-1.5 text-neutral-500 dark:text-neutral-400">
+                            <i class="fa-solid fa-circle-info text-xs"></i>
+                            <span data-i18n="setAlert">Details & Alert</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Weather Panel (Section 14) -->
+                <div class="neu-raised p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs uppercase font-bold text-neutral-400 tracking-wider" data-i18n="weather">Weather</span>
+                        <button onclick="app.refreshCurrentWeather()" class="text-xs text-cherry opacity-70 hover:opacity-100">
+                            <i class="fa-solid fa-rotate-right text-[11px]"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div id="weather-temp-main" class="text-4xl font-light tracking-tight font-sans">28°</div>
+                            <div id="weather-desc-main" class="text-xs text-neutral-400 font-medium mt-0.5">Partly Cloudy</div>
+                        </div>
+
+                        <!-- Minimal Monochromatic Weather Metrics -->
+                        <div class="grid grid-cols-3 gap-3 text-center">
+                            <div class="neu-recessed p-2 rounded-xl min-w-[54px]">
+                                <span class="text-[9px] text-neutral-400 block" data-i18n="rain">Rain</span>
+                                <span id="weather-rain-val" class="text-xs font-bold">20%</span>
+                            </div>
+                            <div class="neu-recessed p-2 rounded-xl min-w-[54px]">
+                                <span class="text-[9px] text-neutral-400 block" data-i18n="wind">Wind</span>
+                                <span id="weather-wind-val" class="text-xs font-bold">12 km/h</span>
+                            </div>
+                            <div class="neu-recessed p-2 rounded-xl min-w-[54px]">
+                                <span class="text-[9px] text-neutral-400 block" data-i18n="humidity">Humidity</span>
+                                <span id="weather-hum-val" class="text-xs font-bold">74%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proximity Alert Radius Panel (Section 15 & Requirement 2) -->
+                <div class="neu-raised p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-[10px] uppercase font-bold text-neutral-400 tracking-wider" data-i18n="notifyNear">Notify me when I am near</div>
+                            <div id="notify-target-name" class="text-xs font-bold text-cherry mt-0.5">ICONSIAM</div>
+                        </div>
+                        <div id="home-radius-display" class="neu-recessed py-1 px-2.5 rounded-xl text-xs font-bold text-cherry">
+                            500 m
+                        </div>
+                    </div>
+
+                    <!-- Range Slider on Home (Requirement 2) -->
+                    <div class="pt-0.5 space-y-1">
+                        <div class="flex justify-between text-[10px] text-neutral-400 px-0.5">
+                            <span>50 m</span>
+                            <span id="home-radius-slider-val" class="font-bold text-cherry">500 m</span>
+                            <span>3 km</span>
+                        </div>
+                        <input id="home-radius-slider" type="range" min="50" max="3000" step="50" value="500"
+                            oninput="app.setRadius(this.value)" class="neu-slider">
+                    </div>
+
+                    <!-- Quick Preset Radius Pills -->
+                    <div class="grid grid-cols-5 gap-1.5 text-center pt-0.5">
+                        <button id="radius-pill-50" onclick="app.setRadius(50)" class="neu-btn py-1.5 px-1 rounded-btn text-xs font-medium">50 m</button>
+                        <button id="radius-pill-250" onclick="app.setRadius(250)" class="neu-btn py-1.5 px-1 rounded-btn text-xs font-medium">250 m</button>
+                        <button id="radius-pill-500" onclick="app.setRadius(500)" class="neu-btn-recessed py-1.5 px-1 rounded-btn text-xs font-bold text-cherry">500 m</button>
+                        <button id="radius-pill-1000" onclick="app.setRadius(1000)" class="neu-btn py-1.5 px-1 rounded-btn text-xs font-medium">1 km</button>
+                        <button id="radius-pill-2000" onclick="app.setRadius(2000)" class="neu-btn py-1.5 px-1 rounded-btn text-xs font-medium">2 km</button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ==============================================================
+                 SCREEN 2: EXPLORE / SAVED PLACES (Section 19)
+                 ============================================================== -->
+            <section id="tab-explore" class="tab-screen w-full h-full absolute inset-0 hidden overflow-y-auto no-scrollbar pt-6 pb-28 px-5 space-y-4">
+                <div class="flex justify-between items-center pt-2">
+                    <div>
+                        <h2 class="text-xl font-bold font-serif tracking-wide" data-i18n="navExplore">Explore Destinations</h2>
+                        <p class="text-xs text-neutral-400" data-i18n="myPlacesSubtitle">Curated locations & favorites</p>
+                    </div>
+                </div>
+
+                <!-- Explore Places List -->
+                <div id="explore-places-list" class="space-y-3">
+                    <!-- Populated dynamically via renderExploreList() -->
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 SCREEN 3: MAP / NAVIGATION (Section 12 & 13)
+                 ============================================================== -->
+            <section id="tab-map" class="tab-screen w-full h-full absolute inset-0 hidden">
+                <div id="leaflet-map" class="w-full h-full z-0"></div>
+
+                <!-- Top Floating Travel Mode Switcher (Section 12) -->
+                <div class="absolute top-5 left-4 right-4 z-20 flex justify-between items-center pointer-events-none">
+                    <div class="neu-capsule p-1.5 flex space-x-1.5 pointer-events-auto shadow-md">
+                        <button id="mode-btn-car" onclick="app.setTravelMode('car')" class="neu-btn-recessed py-2 px-3.5 rounded-btn text-xs font-semibold flex items-center gap-1.5">
+                            <i class="fa-solid fa-car text-xs"></i> <span data-i18n="modeCar">Car</span>
+                        </button>
+                        <button id="mode-btn-walk" onclick="app.setTravelMode('walk')" class="neu-btn py-2 px-3.5 rounded-btn text-xs font-semibold flex items-center gap-1.5 text-neutral-500">
+                            <i class="fa-solid fa-person-walking text-xs"></i> <span data-i18n="modeWalk">Walk</span>
+                        </button>
+                    </div>
+
+                    <!-- Circular Recenter GPS Control -->
+                    <button onclick="app.recenterMap()" class="neu-btn neu-circle w-11 h-11 text-cherry pointer-events-auto shadow-md" title="Recenter GPS">
+                        <i class="fa-solid fa-location-arrow text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Pin Mode Hint Banner -->
+                <div class="absolute top-20 left-4 right-4 z-20 pointer-events-none flex justify-center">
+                    <div class="neu-capsule px-3.5 py-1.5 flex items-center gap-2 text-[10px] text-neutral-500 dark:text-neutral-400 shadow-sm">
+                        <i class="fa-solid fa-map-pin text-cherry text-[9px]"></i>
+                        <span data-i18n="tapMapToPin">Tap map to pin a new location</span>
+                    </div>
+                </div>
+
+                <!-- Travel Information Panel (Section 13 & Collapsible Navigation Sheet) -->
+                <div id="map-travel-panel" class="absolute bottom-24 left-4 right-4 z-20 neu-raised p-4 transition-all duration-300 shadow-xl">
+                    <!-- Grab Handle Bar -->
+                    <div onclick="app.toggleMapPanel()" class="w-10 h-1 bg-neutral-300 dark:bg-neutral-600 rounded-full mx-auto cursor-pointer mb-2 -mt-1 hover:bg-neutral-400 transition-colors" title="Toggle panel"></div>
+
+                    <!-- Panel Header: Click to collapse / expand -->
+                    <div onclick="app.toggleMapPanel()" class="flex justify-between items-center cursor-pointer select-none">
+                        <div class="flex items-center space-x-2 min-w-0 flex-1 pr-2">
+                            <div class="w-2 h-2 rounded-full bg-cherry shrink-0 animate-pulse"></div>
+                            <h3 id="map-active-dest-title" class="font-bold text-sm truncate">ICONSIAM</h3>
+                            <!-- Mini Info visible when collapsed so user still sees ETA & Distance without blocking map -->
+                            <span id="map-panel-collapsed-info" class="hidden text-[10px] font-semibold text-cherry shrink-0 bg-neutral-200/60 dark:bg-neutral-800/60 px-2 py-0.5 rounded-full">
+                                <span id="map-mini-dist">3.1 km</span> • <span id="map-mini-time">14 min</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-1.5 shrink-0">
+                            <!-- Quick Nav Toggle icon when collapsed -->
+                            <button id="btn-mini-nav-toggle" onclick="event.stopPropagation(); app.toggleNavigationSimulation()" class="hidden neu-btn neu-circle w-7 h-7 text-[10px] text-cherry" title="Toggle Navigation">
+                                <i id="mini-nav-icon" class="fa-solid fa-location-arrow"></i>
+                            </button>
+                            <!-- Collapse / Expand Chevron -->
+                            <button id="btn-toggle-map-panel" class="neu-btn neu-circle w-7 h-7 text-[10px] text-neutral-400 hover:text-cherry" title="Toggle Panel">
+                                <i id="map-panel-chevron" class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Panel Body -->
+                    <div id="map-panel-body" class="space-y-3 pt-3 transition-all duration-300">
+                        <!-- Radius Live Range Slider on Map (Requirement 2) -->
+                        <div class="neu-recessed p-2.5 rounded-2xl space-y-1">
+                            <div class="flex justify-between items-center text-[10px]">
+                                <span class="font-semibold text-neutral-400 flex items-center gap-1">
+                                    <i class="fa-solid fa-bullseye text-cherry text-[9px]"></i> <span data-i18n="radiusZone">Alert Radius</span>
+                                </span>
+                                <span id="map-radius-display" class="font-bold text-cherry">500 m</span>
+                            </div>
+                            <input id="map-radius-slider" type="range" min="50" max="3000" step="50" value="500"
+                                oninput="app.setRadius(this.value)" class="neu-slider">
+                        </div>
+
+                        <!-- Metric Arrangement: In Car mode, steps & cal are hidden (Requirement 1) -->
+                        <div id="map-metrics-grid" class="grid grid-cols-2 gap-2 text-center transition-all duration-300">
+                            <div class="neu-recessed p-2 rounded-2xl">
+                                <span class="text-[9px] text-neutral-400 block" data-i18n="distance">Distance</span>
+                                <span id="map-metric-distance" class="text-xs font-bold text-cherry">3.1 km</span>
+                            </div>
+                            <div class="neu-recessed p-2 rounded-2xl">
+                                <span class="text-[9px] text-neutral-400 block" data-i18n="time">Time</span>
+                                <span id="map-metric-time" class="text-xs font-bold">14 min</span>
+                            </div>
+                            <div id="metric-box-steps" class="neu-recessed p-2 rounded-2xl hidden">
+                                <span class="text-[9px] text-neutral-400 block" data-i18n="steps">Steps</span>
+                                <span id="map-metric-steps" class="text-xs font-bold">6,200</span>
+                            </div>
+                            <div id="metric-box-calories" class="neu-recessed p-2 rounded-2xl hidden">
+                                <span class="text-[9px] text-neutral-400 block" data-i18n="calories">Calories</span>
+                                <span id="map-metric-calories" class="text-xs font-bold">285 kcal</span>
+                            </div>
+                        </div>
+
+                        <!-- Start / Stop Navigation Primary Button (Section 26) -->
+                        <button id="btn-map-start-nav" onclick="app.toggleNavigationSimulation()" class="w-full py-3 rounded-btn neu-btn text-xs font-bold text-cherry shadow-sm flex items-center justify-center gap-2">
+                            <i id="map-nav-btn-icon" class="fa-solid fa-location-arrow text-xs"></i>
+                            <span id="map-nav-btn-text" data-i18n="startNav">Start Navigation</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 SCREEN 4: BUDGET (Section 16 & 17)
+                 ============================================================== -->
+            <section id="tab-budget" class="tab-screen w-full h-full absolute inset-0 hidden overflow-y-auto no-scrollbar pt-6 pb-28 px-5 space-y-4">
+                <!-- Header -->
+                <div class="flex justify-between items-center pt-2">
+                    <div>
+                        <h2 class="text-xl font-bold font-serif tracking-wide" data-i18n="navBudget">Budget System</h2>
+                        <p id="budget-destination-title" class="text-xs text-cherry font-semibold">ICONSIAM</p>
+                    </div>
+                    <button onclick="app.openExpenseModal()" class="neu-btn px-3 py-1.5 rounded-btn text-xs font-bold text-cherry flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus text-[10px]"></i> <span data-i18n="addExpense">Add</span>
+                    </button>
+                </div>
+
+                <!-- Daily Budget Card (Requirement 1 & 2) -->
+                <div class="neu-raised p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-[10px] uppercase font-bold text-neutral-400 tracking-wider" data-i18n="dailyBudgetLimit">Daily Budget Limit</div>
+                            <div id="daily-budget-limit-val" class="text-2xl font-light text-cherry mt-0.5">฿2,000</div>
+                        </div>
+                        <button onclick="app.openAdjustDailyModal()" class="neu-btn px-3 py-1.5 rounded-btn text-xs font-semibold text-neutral-500 flex items-center gap-1.5">
+                            <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                            <span data-i18n="adjustBudget">Adjust</span>
+                        </button>
+                    </div>
+
+                    <!-- Daily Progress Bar -->
+                    <div class="neu-recessed rounded-full h-2 overflow-hidden">
+                        <div id="daily-budget-progress-bar" class="h-full bg-cherry rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-neutral-400">
+                        <div>
+                            <span data-i18n="todaySpent">Today Spent: </span>
+                            <span id="today-spent-val" class="font-bold text-neutral-600 dark:text-neutral-300">฿0</span>
+                        </div>
+                        <span id="daily-budget-percent-text" class="font-semibold text-cherry">0% used</span>
+                        <div>
+                            <span data-i18n="todayRemaining">Left: </span>
+                            <span id="today-remaining-val" class="font-bold text-neutral-600 dark:text-neutral-300">฿2,000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Expense for Last Pinned Location (Requirement 1) -->
+                <div class="neu-raised p-4 space-y-2.5">
+                    <div class="text-[10px] uppercase font-bold text-neutral-400 tracking-wider" data-i18n="quickRecordFor">Quick Record for</div>
+                    <div id="quick-record-place-name" class="text-sm font-bold text-cherry truncate">—</div>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="app.quickAddExpenseForLastPinned(100)" class="neu-btn py-2 rounded-btn text-xs font-semibold">฿100</button>
+                        <button onclick="app.quickAddExpenseForLastPinned(300)" class="neu-btn py-2 rounded-btn text-xs font-semibold">฿300</button>
+                        <button onclick="app.quickAddExpenseForLastPinned(500)" class="neu-btn py-2 rounded-btn text-xs font-semibold">฿500</button>
+                        <button onclick="app.openExpenseModal()" class="neu-btn py-2 rounded-btn text-xs font-bold text-cherry">Custom</button>
+                    </div>
+                </div>
+
+                <!-- Destination Budget Summary -->
+                <div class="neu-raised p-4 space-y-3">
+                    <div class="text-[10px] uppercase font-bold text-neutral-400 tracking-wider" data-i18n="destination">Destination Budget</div>
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="neu-recessed p-3 rounded-2xl">
+                            <span class="text-[10px] text-neutral-400 block" data-i18n="budget">Budget</span>
+                            <span id="budget-total-val" class="text-sm font-bold">฿1,500</span>
+                        </div>
+                        <div class="neu-recessed p-3 rounded-2xl">
+                            <span class="text-[10px] text-neutral-400 block" data-i18n="spent">Spent</span>
+                            <span id="budget-spent-val" class="text-sm font-bold text-neutral-500">฿850</span>
+                        </div>
+                        <div class="neu-recessed p-3 rounded-2xl">
+                            <span class="text-[10px] text-neutral-400 block" data-i18n="remaining">Left</span>
+                            <span id="budget-remaining-val" class="text-sm font-bold text-cherry">฿650</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expense History with View Switcher (Requirement 1) -->
+                <!-- Weekly Summary Panel -->
+                <div class="neu-raised p-4 space-y-1">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-week text-xs text-cherry"></i>
+                            <span class="text-xs font-bold uppercase tracking-wider">สรุปประจำสัปดาห์</span>
+                        </div>
+                        <button onclick="this.closest('.neu-raised').querySelector('#weekly-summary-body').classList.toggle('hidden'); this.querySelector('i').classList.toggle('fa-chevron-down'); this.querySelector('i').classList.toggle('fa-chevron-up');"
+                            class="neu-circle w-7 h-7 text-[10px] text-neutral-400">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <!-- Quick Stats always visible -->
+                    <div class="flex gap-4 pt-1">
+                        <div>
+                            <div class="text-[10px] text-neutral-400">รวม 7 วัน</div>
+                            <div id="weekly-total-spent" class="text-lg font-black text-cherry">฿0</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-neutral-400">สถานที่</div>
+                            <div id="weekly-places-count" class="text-lg font-black">0</div>
+                        </div>
+                    </div>
+                    <!-- Expandable detail body -->
+                    <div id="weekly-summary-body" class="pt-2 hidden">
+                        <!-- Populated by renderWeeklySummary() -->
+                    </div>
+                </div>
+
+                <!-- Expense History -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs uppercase font-bold text-neutral-400 tracking-wider" data-i18n="expenseHistory">Expense History</h3>
+                        <div class="neu-recessed rounded-full p-1 flex gap-1">
+                            <button id="btn-budget-mode-day" onclick="app.setBudgetViewMode('byDay')" class="neu-btn-recessed py-1 px-2.5 rounded-full text-[10px] font-bold text-cherry" data-i18n="byDay">By Day</button>
+                            <button id="btn-budget-mode-loc" onclick="app.setBudgetViewMode('byLocation')" class="py-1 px-2.5 rounded-full text-[10px] font-medium text-neutral-400" data-i18n="byLocation">By Location</button>
+                        </div>
+                    </div>
+                    <div id="budget-expenses-list" class="space-y-2.5">
+                        <!-- Populated dynamically via renderBudgetScreen() -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 SCREEN 5: SETTINGS (Section 21)
+                 ============================================================== -->
+            <section id="tab-settings" class="tab-screen w-full h-full absolute inset-0 hidden overflow-y-auto no-scrollbar pt-6 pb-28 px-5 space-y-4">
+                <div class="pt-2">
+                    <h2 class="text-xl font-bold font-serif tracking-wide" data-i18n="navSettings">Settings</h2>
+                    <p class="text-xs text-neutral-400">Preferences & system options</p>
+                </div>
+
+                <!-- User Profile Card -->
+                <div class="neu-raised p-4 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3.5 min-w-0">
+                        <div class="relative group cursor-pointer" onclick="app.openEditProfileModal()">
+                            <img id="profile-display-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+                                class="w-14 h-14 rounded-full object-cover neu-raised p-0.5 border border-cherry/40 shadow-sm transition-transform active:scale-95" alt="Profile Photo">
+                            <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs">
+                                <i class="fa-solid fa-camera"></i>
+                            </div>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <h3 id="profile-display-name" class="font-bold text-sm truncate">Luxe Traveler</h3>
+                                <span class="neu-recessed px-1.5 py-0.5 rounded text-[9px] font-bold text-cherry shrink-0">VIP</span>
+                            </div>
+                            <p id="profile-display-bio" class="text-xs text-neutral-400 truncate mt-0.5">Bangkok, Thailand</p>
+                            <span id="profile-display-email" class="text-[10px] text-neutral-500 truncate block">traveler@nearplace.luxe</span>
+                        </div>
+                    </div>
+                    <button onclick="app.openEditProfileModal()" class="neu-btn neu-circle w-9 h-9 text-xs text-cherry shrink-0 active:scale-90 transition-transform" title="Edit Profile">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                </div>
+
+                <!-- Appearance Panel -->
+                <div class="neu-raised p-4 space-y-3">
+                    <span class="text-xs uppercase font-bold text-neutral-400 tracking-wider" data-i18n="appearance">Appearance</span>
+                    
+                    <div class="flex justify-between items-center text-xs">
+                        <span data-i18n="themeMode">Theme</span>
+                        <button onclick="app.toggleTheme()" class="neu-btn py-1.5 px-3 rounded-btn text-xs font-semibold">
+                            <i id="theme-setting-icon" class="fa-solid fa-moon mr-1.5 text-cherry"></i>
+                            <span id="theme-setting-text">Graphite</span>
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between items-center text-xs border-t border-neutral-300 dark:border-neutral-700/60 pt-2.5">
+                        <span data-i18n="appLanguage">Language</span>
+                        <button onclick="app.toggleLanguage()" class="neu-btn py-1.5 px-3 rounded-btn text-xs font-semibold">
+                            <span id="lang-setting-text">ไทย (TH)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Notifications & Voice Guidance -->
+                <div class="neu-raised p-4 space-y-3">
+                    <span class="text-xs uppercase font-bold text-neutral-400 tracking-wider" data-i18n="notifications">Notifications</span>
+
+                    <div class="flex justify-between items-center text-xs">
+                        <span data-i18n="proximityAlerts">Proximity Alerts</span>
+                        <div class="w-2.5 h-2.5 rounded-full bg-cherry"></div>
+                    </div>
+
+                    <div class="flex justify-between items-center text-xs border-t border-neutral-300 dark:border-neutral-700/60 pt-2.5">
+                        <span data-i18n="sound">Chime Sound</span>
+                        <div class="w-2.5 h-2.5 rounded-full bg-cherry"></div>
+                    </div>
+
+                    <!-- Voice Guidance Toggle (Requirement 4) -->
+                    <div class="flex justify-between items-center text-xs border-t border-neutral-300 dark:border-neutral-700/60 pt-2.5">
+                        <div>
+                            <span data-i18n="voiceEnabled">Voice Guidance</span>
+                            <span id="voice-status-text" class="ml-1.5 text-[10px] text-cherry font-semibold">Enabled</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div id="voice-status-dot" class="w-2.5 h-2.5 rounded-full bg-cherry"></div>
+                            <button onclick="app.toggleVoice()" class="neu-btn py-1 px-2.5 rounded-btn text-[10px] font-semibold">Toggle</button>
+                        </div>
+                    </div>
+
+                    <!-- Test Voice Button (Requirement 4) -->
+                    <div class="pt-1">
+                        <button onclick="app.testVoice()" class="w-full neu-btn py-2.5 rounded-btn text-xs font-semibold flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-volume-high text-cherry text-[11px]"></i>
+                            <span data-i18n="testVoice">Test Voice Notification</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Data Management / Reset Data (Requirement 3) -->
+                <div class="neu-raised p-4 space-y-3">
+                    <span class="text-xs uppercase font-bold text-neutral-400 tracking-wider" data-i18n="dataManagement">Data Management</span>
+
+                    <div class="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed" data-i18n="resetDataDesc">
+                        Reset all saved locations, expenses, custom budgets, and restore original presets.
+                    </div>
+
+                    <button onclick="app.confirmResetData()" class="w-full neu-btn py-2.5 rounded-btn text-xs font-bold text-red-500 hover:text-red-600 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-arrow-rotate-left text-xs"></i>
+                        <span data-i18n="resetData">Reset All Data</span>
+                    </button>
+                </div>
+
+                <!-- About Info (Section 21 & 33) -->
+                <div class="neu-recessed p-4 text-center space-y-1">
+                    <div class="text-xs font-bold font-serif">NearPlace Luxe</div>
+                    <div class="text-[10px] text-neutral-400">Soft Neumorphic Luxury Location Assistant • Thailand Edition</div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- ==============================================================
+             FLOATING BOTTOM NAVIGATION CAPSULE (Section 9 & 27)
+             ============================================================== -->
+        <nav class="absolute bottom-4 left-4 right-4 z-40">
+            <div class="neu-capsule p-1.5 flex items-center justify-between text-xs">
+                <!-- Tab: Home -->
+                <button onclick="app.switchTab('tab-home')" id="nav-btn-home" class="neu-btn-recessed flex-1 py-2 px-3 rounded-full flex flex-col items-center justify-center text-cherry transition-all">
+                    <i class="fa-solid fa-house text-sm"></i>
+                    <span class="text-[9px] font-semibold mt-0.5" data-i18n="navHome">Home</span>
+                </button>
+
+                <!-- Tab: Explore -->
+                <button onclick="app.switchTab('tab-explore')" id="nav-btn-explore" class="flex-1 py-2 px-3 rounded-full flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-500 hover:text-cherry transition-all">
+                    <i class="fa-solid fa-compass text-sm"></i>
+                    <span class="text-[9px] font-semibold mt-0.5" data-i18n="navExplore">Explore</span>
+                </button>
+
+                <!-- Tab: Map -->
+                <button onclick="app.switchTab('tab-map')" id="nav-btn-map" class="flex-1 py-2 px-3 rounded-full flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-500 hover:text-cherry transition-all">
+                    <i class="fa-solid fa-map text-sm"></i>
+                    <span class="text-[9px] font-semibold mt-0.5" data-i18n="navMap">Map</span>
+                </button>
+
+                <!-- Tab: Budget -->
+                <button onclick="app.switchTab('tab-budget')" id="nav-btn-budget" class="flex-1 py-2 px-3 rounded-full flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-500 hover:text-cherry transition-all">
+                    <i class="fa-solid fa-wallet text-sm"></i>
+                    <span class="text-[9px] font-semibold mt-0.5" data-i18n="navBudget">Budget</span>
+                </button>
+
+                <!-- Tab: Settings -->
+                <button onclick="app.switchTab('tab-settings')" id="nav-btn-settings" class="flex-1 py-2 px-3 rounded-full flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-500 hover:text-cherry transition-all">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                    <span class="text-[9px] font-semibold mt-0.5" data-i18n="navSettings">Settings</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- ==============================================================
+             PLACE DETAILS BOTTOM SHEET (Section 18)
+             ============================================================== -->
+        <div id="place-detail-sheet" class="absolute inset-x-0 bottom-0 z-50 transform translate-y-full transition-transform duration-300 ease-out pointer-events-none">
+            <div class="neu-raised rounded-t-[36px] p-5 pb-24 shadow-2xl pointer-events-auto max-h-[82vh] overflow-y-auto no-scrollbar space-y-4">
+                <div class="w-12 h-1 bg-neutral-300 dark:bg-neutral-600 rounded-full mx-auto"></div>
+
+                <div class="relative overflow-hidden rounded-[26px] h-44 shadow-inner">
+                    <img id="detail-sheet-image" src="https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="Detail" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1508009603885-50cf7c579365?auto=format&fit=crop&w=800&q=80'">
+                    <button onclick="app.closeDetailSheet()" class="absolute top-3 right-3 neu-btn neu-circle w-9 h-9 text-xs">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div>
+                    <span id="detail-sheet-category" class="text-[10px] uppercase font-bold text-neutral-400 tracking-wider">Shopping Mall</span>
+                    <h2 id="detail-sheet-name" class="text-lg font-bold">ICONSIAM</h2>
+                    <p id="detail-sheet-address" class="text-xs text-neutral-400 mt-0.5">299 Charoen Nakhon Rd, Khlong San</p>
+                    <p id="detail-sheet-hours" class="text-xs text-cherry font-semibold mt-1">10:00 - 22:00</p>
+                </div>
+
+                <!-- Primary Actions per Section 18 -->
+                <div class="grid grid-cols-3 gap-2 pt-1">
+                    <button onclick="app.closeDetailSheet(); app.switchTab('tab-map')" class="neu-btn py-3 rounded-btn text-xs font-bold text-cherry flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-diamond-turn-right text-xs"></i>
+                        <span data-i18n="startNav">Navigate</span>
+                    </button>
+                    <button onclick="app.closeDetailSheet(); app.switchTab('tab-home')" class="neu-btn py-3 rounded-btn text-xs font-semibold flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-bell text-xs"></i>
+                        <span data-i18n="setAlert">Alert</span>
+                    </button>
+                    <button onclick="app.deleteCurrentDetailPlace()" class="neu-btn py-3 rounded-btn text-xs font-semibold text-red-400 hover:text-red-500 flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                        <span data-i18n="delete">Delete</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================================================
+             ADD EXPENSE MODAL (Section 17)
+             ============================================================== -->
+        <div id="add-expense-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/40 backdrop-blur-sm">
+            <div class="neu-raised p-5 w-full max-w-xs space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-sm" data-i18n="addExpense">Add Expense</h3>
+                    <button onclick="app.closeExpenseModal()" class="text-neutral-400 hover:text-neutral-600">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Location</label>
+                        <input id="modal-expense-dest" type="text" placeholder="Destination name" class="neu-input">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-neutral-400 uppercase font-bold block mb-1" data-i18n="amount">Amount (฿)</label>
+                        <input id="modal-expense-amount" type="number" placeholder="e.g. 500" class="neu-input">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-neutral-400 uppercase font-bold block mb-1" data-i18n="note">Note</label>
+                        <input id="modal-expense-note" type="text" placeholder="e.g. Lunch & Drinks" class="neu-input">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button onclick="app.closeExpenseModal()" class="neu-btn py-2.5 rounded-btn text-xs font-semibold" data-i18n="cancel">Cancel</button>
+                    <button onclick="app.addExpense(document.getElementById('modal-expense-amount').value, document.getElementById('modal-expense-note').value, document.getElementById('modal-expense-dest').value || null)" class="neu-btn py-2.5 rounded-btn text-xs font-bold text-cherry" data-i18n="save">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================================================
+             ADJUST DAILY BUDGET MODAL (Requirement 2)
+             ============================================================== -->
+        <div id="adjust-daily-budget-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/40 backdrop-blur-sm">
+            <div class="neu-raised p-5 w-full max-w-xs space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-sm" data-i18n="setDailyLimit">Set Daily Limit</h3>
+                    <button onclick="app.closeAdjustDailyModal()" class="text-neutral-400 hover:text-neutral-600">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div>
+                    <label class="text-[10px] text-neutral-400 uppercase font-bold block mb-1" data-i18n="dailyBudgetLimit">Daily Budget Limit (฿)</label>
+                    <input id="modal-daily-budget-input" type="number" placeholder="e.g. 2000" class="neu-input">
+                </div>
+
+                <!-- Quick presets -->
+                <div class="grid grid-cols-4 gap-1.5">
+                    <button onclick="document.getElementById('modal-daily-budget-input').value=500" class="neu-btn py-1.5 rounded-btn text-[10px] font-semibold">฿500</button>
+                    <button onclick="document.getElementById('modal-daily-budget-input').value=1000" class="neu-btn py-1.5 rounded-btn text-[10px] font-semibold">฿1K</button>
+                    <button onclick="document.getElementById('modal-daily-budget-input').value=2000" class="neu-btn py-1.5 rounded-btn text-[10px] font-semibold">฿2K</button>
+                    <button onclick="document.getElementById('modal-daily-budget-input').value=5000" class="neu-btn py-1.5 rounded-btn text-[10px] font-semibold">฿5K</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="app.closeAdjustDailyModal()" class="neu-btn py-2.5 rounded-btn text-xs font-semibold" data-i18n="cancel">Cancel</button>
+                    <button onclick="app.adjustDailyBudgetLimit(document.getElementById('modal-daily-budget-input').value)" class="neu-btn py-2.5 rounded-btn text-xs font-bold text-cherry" data-i18n="save">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================================================
+             ADJUST PLACE BUDGET MODAL (Requirement 2)
+             ============================================================== -->
+        <div id="adjust-place-budget-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/40 backdrop-blur-sm">
+            <div class="neu-raised p-5 w-full max-w-xs space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-sm" data-i18n="setPlaceBudget">Set Location Budget</h3>
+                    <button onclick="app.closeAdjustPlaceModal()" class="text-neutral-400 hover:text-neutral-600">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div id="modal-adjust-place-title" class="text-sm font-bold text-cherry truncate">Location</div>
+                <input id="modal-adjust-place-id" type="hidden" value="">
+
+                <div>
+                    <label class="text-[10px] text-neutral-400 uppercase font-bold block mb-1" data-i18n="budget">Budget for this location (฿)</label>
+                    <input id="modal-place-budget-input" type="number" placeholder="e.g. 1500" class="neu-input">
+                </div>
+
+                <!-- Quick presets -->
+                <div class="grid grid-cols-4 gap-1.5">
+                    <button onclick="document.getElementById('modal-place-budget-input').value=500" class="neu-btn py-1.5 rounded-btn text-[10px] font-semibold">฿500</button>
+                    <button onclick="document.getElementById('modal-place-budget-input').value=1000" class="neu-btn py-1.5 rounded-btn text-[10px] font-semibold">฿1K</button>
+                    <button onclick="document.getElementById('modal-place-budget-input').value=1500" class="neu-btn py-1.5 rounded-btn text-[10px] font-semibold">฿1.5K</button>
+                    <button onclick="document.getElementById('modal-place-budget-input').value=3000" class="neu-btn py-1.5 rounded-btn text-[10px] font-semibold">฿3K</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="app.closeAdjustPlaceModal()" class="neu-btn py-2.5 rounded-btn text-xs font-semibold" data-i18n="cancel">Cancel</button>
+                    <button onclick="app.adjustPlaceBudget(document.getElementById('modal-adjust-place-id').value, document.getElementById('modal-adjust-place-title').innerText, document.getElementById('modal-place-budget-input').value)" class="neu-btn py-2.5 rounded-btn text-xs font-bold text-cherry" data-i18n="save">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================================================
+             RESET DATA CONFIRMATION MODAL (Requirement 3)
+             ============================================================== -->
+        <div id="reset-confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-5 bg-black/40 backdrop-blur-sm">
+            <div class="neu-raised p-6 w-full max-w-xs space-y-4 text-center">
+                <div class="w-14 h-14 mx-auto rounded-full neu-recessed flex items-center justify-center text-red-500 text-xl shadow-inner">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-base text-neutral-800 dark:text-neutral-100" data-i18n="resetData">Reset All Data</h3>
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5 leading-relaxed" data-i18n="confirmReset">
+                        Are you sure you want to reset all data? This will restore factory presets and clear all history.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5 pt-2">
+                    <button onclick="app.closeResetModal()" class="neu-btn py-2.5 rounded-btn text-xs font-semibold" data-i18n="cancel">Cancel</button>
+                    <button onclick="app.executeResetData()" class="neu-btn py-2.5 rounded-btn text-xs font-bold text-red-500 shadow-md" data-i18n="confirm">Reset Data</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================================================
+             EDIT PROFILE MODAL
+             ============================================================== -->
+        <div id="edit-profile-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div class="neu-raised p-5 w-full max-w-sm space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar">
+                <div class="flex justify-between items-center border-b border-neutral-300 dark:border-neutral-700/60 pb-3">
+                    <h3 class="font-bold text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-user-pen text-cherry"></i>
+                        <span data-i18n="editProfile">Edit Profile</span>
+                    </h3>
+                    <button onclick="app.closeEditProfileModal()" class="neu-circle w-7 h-7 text-xs text-neutral-400">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Avatar Preview & Change Options -->
+                <div class="flex flex-col items-center gap-2.5 py-1">
+                    <div class="relative">
+                        <img id="modal-profile-preview" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+                            class="w-20 h-20 rounded-full object-cover neu-raised p-1 border-2 border-cherry/50 shadow-md" alt="Avatar Preview">
+                        <label for="modal-profile-file-input" class="absolute bottom-0 right-0 neu-btn neu-circle w-7 h-7 text-[11px] text-cherry cursor-pointer flex items-center justify-center shadow-md" title="Upload Photo">
+                            <i class="fa-solid fa-camera"></i>
+                        </label>
+                        <input id="modal-profile-file-input" type="file" accept="image/*" class="hidden" onchange="app.handleProfilePhotoUpload(event)">
+                    </div>
+                    <span class="text-[11px] text-neutral-400 font-medium" data-i18n="changePhoto">Change Profile Photo</span>
+                </div>
+
+                <!-- Profile Info Form -->
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="font-semibold text-neutral-400 block mb-1" data-i18n="profileName">Name</label>
+                        <input id="modal-profile-name-input" type="text" placeholder="Your Name"
+                            class="neu-input w-full p-2.5 rounded-btn text-xs font-semibold focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-neutral-400 block mb-1" data-i18n="profileBio">Bio / Status</label>
+                        <input id="modal-profile-bio-input" type="text" placeholder="Location, bio, or quote"
+                            class="neu-input w-full p-2.5 rounded-btn text-xs focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-neutral-400 block mb-1" data-i18n="profileEmail">Email / Contact</label>
+                        <input id="modal-profile-email-input" type="email" placeholder="email@example.com"
+                            class="neu-input w-full p-2.5 rounded-btn text-xs focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="font-semibold text-neutral-400 block mb-1" data-i18n="orImageURL">Or Image URL</label>
+                        <div class="flex gap-2">
+                            <input id="modal-profile-url-input" type="url" placeholder="https://..."
+                                class="neu-input flex-1 p-2 rounded-btn text-xs focus:outline-none"
+                                onchange="app.previewProfileUrl(this.value)">
+                            <button onclick="app.previewProfileUrl(document.getElementById('modal-profile-url-input').value)"
+                                class="neu-btn px-2.5 py-1.5 rounded-btn text-[11px] font-semibold text-cherry shrink-0">
+                                Preview
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5 pt-2">
+                    <button onclick="app.closeEditProfileModal()" class="neu-btn py-2.5 rounded-btn text-xs font-semibold" data-i18n="cancel">Cancel</button>
+                    <button onclick="app.saveProfile()" class="neu-btn py-2.5 rounded-btn text-xs font-bold text-cherry" data-i18n="save">Save</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application Script Modules -->
+    <script src="js/i18n.js"></script>
+    <script src="js/presets.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/services.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
