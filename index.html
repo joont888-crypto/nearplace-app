@@ -44,6 +44,8 @@
             </div>
         </div>
 
+
+
         <!-- Main Screen Body Area -->
         <main class="relative flex-1 w-full h-full overflow-hidden">
 
@@ -551,10 +553,119 @@
                     </button>
                 </div>
 
+                <!-- Account & Login Management -->
+                <div class="neu-raised p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs uppercase font-bold text-neutral-400 tracking-wider">Account</span>
+                        <span id="settings-auth-status-badge" class="neu-recessed px-2 py-0.5 rounded-full text-[10px] font-bold text-cherry">
+                            Guest Mode
+                        </span>
+                    </div>
+
+                    <div id="settings-auth-user-info" class="flex items-center gap-3 text-xs">
+                        <img id="settings-auth-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80" 
+                            class="w-10 h-10 rounded-full object-cover border border-cherry/40">
+                        <div class="min-w-0 flex-1">
+                            <div id="settings-auth-name" class="font-bold truncate">Luxe Traveler</div>
+                            <div id="settings-auth-email" class="text-[10px] text-neutral-400 truncate">Guest Session</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button id="settings-btn-login-google" onclick="app.loginWithGoogle()" 
+                            class="neu-btn py-2 px-3 rounded-btn text-xs font-semibold flex items-center justify-center gap-2 text-neutral-800 dark:text-neutral-100">
+                            <i class="fa-brands fa-google text-cherry text-xs"></i>
+                            <span id="settings-google-btn-text">Sign in</span>
+                        </button>
+                        <button id="settings-btn-logout" onclick="app.signOutUser()" 
+                            class="neu-btn py-2 px-3 rounded-btn text-xs font-semibold text-neutral-500 dark:text-neutral-400 hover:text-red-500 flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+                            <span data-i18n="signOut">Sign Out</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- About Info (Section 21 & 33) -->
                 <div class="neu-recessed p-4 text-center space-y-1">
                     <div class="text-xs font-bold font-serif">NearPlace Luxe</div>
                     <div class="text-[10px] text-neutral-400">Soft Neumorphic Luxury Location Assistant • Thailand Edition</div>
+                </div>
+            </section>
+
+            <!-- ==============================================================
+                 SCREEN 6: DEDICATED LOGIN SCREEN
+                 ============================================================== -->
+            <section id="tab-login" class="tab-screen w-full h-full absolute inset-0 hidden overflow-y-auto no-scrollbar flex flex-col justify-between p-6 z-20">
+                <!-- Top Brand Bar & Controls -->
+                <div class="flex justify-between items-center pt-2">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-xl neu-raised flex items-center justify-center text-cherry text-xs">
+                            <i class="fa-solid fa-compass"></i>
+                        </div>
+                        <span class="font-serif font-bold text-base tracking-wide">NearPlace <span class="text-xs font-sans text-cherry">LUXE</span></span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="app.toggleLanguage()" class="neu-btn neu-circle w-8 h-8 text-[11px] font-bold" title="Language">
+                            <span id="login-lang-code">TH</span>
+                        </button>
+                        <button onclick="app.toggleTheme()" class="neu-btn neu-circle w-8 h-8 text-xs text-cherry" title="Theme">
+                            <i class="fa-solid fa-circle-half-stroke"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Center Login Form Card -->
+                <div class="my-auto py-6 text-center space-y-6">
+                    <!-- Emblem -->
+                    <div class="relative mx-auto w-24 h-24 rounded-full neu-raised flex items-center justify-center border border-cherry/30 shadow-xl">
+                        <div class="w-16 h-16 rounded-full neu-recessed flex items-center justify-center text-cherry text-2xl">
+                            <i class="fa-solid fa-location-dot animate-pulse"></i>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 max-w-xs mx-auto">
+                        <h2 class="text-2xl font-bold font-serif tracking-tight text-neutral-800 dark:text-neutral-100" data-i18n="loginTitle">
+                            Welcome to NearPlace Luxe
+                        </h2>
+                        <p class="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed px-2" data-i18n="loginSubtitle">
+                            Sign in to explore curated destinations and manage your luxury travel budgets
+                        </p>
+                    </div>
+
+                    <!-- Clean Google Sign-In Card -->
+                    <div class="neu-raised p-5 max-w-xs mx-auto space-y-3 rounded-3xl">
+                        <!-- Google Button -->
+                        <button id="btn-google-login" onclick="app.loginWithGoogle()" 
+                            class="w-full neu-btn py-3 px-4 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all group border border-neutral-300 dark:border-neutral-700/60 shadow-md">
+                            <!-- Colorful Google Icon SVG -->
+                            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                            </svg>
+                            <span class="text-xs font-bold text-neutral-800 dark:text-neutral-100 group-hover:text-cherry transition-colors" data-i18n="signInWithGoogle">
+                                Sign in with Google
+                            </span>
+                        </button>
+
+                        <!-- Divider -->
+                        <div class="flex items-center gap-2 py-1">
+                            <div class="flex-1 h-px bg-neutral-300 dark:bg-neutral-700"></div>
+                            <span class="text-[10px] text-neutral-400 uppercase font-semibold">or</span>
+                            <div class="flex-1 h-px bg-neutral-300 dark:bg-neutral-700"></div>
+                        </div>
+
+                        <!-- Guest Mode Button -->
+                        <button onclick="app.continueAsGuest()" class="w-full neu-btn-recessed py-2.5 px-3 rounded-xl text-xs font-semibold text-neutral-500 dark:text-neutral-400 hover:text-cherry transition-colors" data-i18n="guestMode">
+                            Continue as Guest
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bottom Footer -->
+                <div class="text-center text-[10px] text-neutral-400 pb-2">
+                    <span>NearPlace Luxe Smart GPS • Thailand</span>
                 </div>
             </section>
 
@@ -563,7 +674,7 @@
         <!-- ==============================================================
              FLOATING BOTTOM NAVIGATION CAPSULE (Section 9 & 27)
              ============================================================== -->
-        <nav class="absolute bottom-4 left-4 right-4 z-40">
+        <nav id="bottom-nav-bar" class="absolute bottom-4 left-4 right-4 z-40 transition-all duration-300">
             <div class="neu-capsule p-1.5 flex items-center justify-between text-xs">
                 <!-- Tab: Home -->
                 <button onclick="app.switchTab('tab-home')" id="nav-btn-home" class="neu-btn-recessed flex-1 py-2 px-3 rounded-full flex flex-col items-center justify-center text-cherry transition-all">
